@@ -97,7 +97,7 @@ class LR(Classifier):
         if not os.path.exists(store_folder):
             os.makedirs(store_folder)
         if not os.path.isdir(store_folder):
-            print('The store function of SVM must be a folder path')
+            print('The store function of LR must be a folder path')
             return
         if os.path.isdir(store_folder):
             store_path = os.path.join(store_folder, 'LR model.pickle')

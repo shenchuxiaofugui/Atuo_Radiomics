@@ -17,6 +17,9 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # from Evaluate import Evaluate
 
 # def main(csv_path):
+
+
+
 if __name__ == '__main__':
     # csv1 = r'C:\Users\HJ Wang\Desktop\ML\My_work\songyang\ibsi\IBSI_features功能 全.csv'
     # csv1 = r'C:\Users\HJ Wang\Desktop\ML\My_work\songyang\ibsi\IBSI_features结构 全.csv'
@@ -42,7 +45,7 @@ if __name__ == '__main__':
                    'features': [],
                    }
 
-    pcc = DimensionReductionByPCC()
+    pcc = DimensionReductionByPCC(threshold=0.99)
     data_split = DataSplit()
     up = UpSampling()
     df1 = pcc.run(df1)
@@ -102,7 +105,7 @@ if __name__ == '__main__':
                 name = ['cv_train', 'cv_val']
                 pred = [cv_train_predict, cv_val_predict]
                 auc, ci_lower_list, ci_upper_list = draw_roc_list(pred, label, name, is_show=False)
-                fold5_auc.append(auc[1])
+                fold5_auc.append(auc[1])  #这里为啥要加auc[1]
             mean_cv_val_auc = np.array(fold5_auc).mean()
             if mean_cv_val_auc > max_val_AUC and mean_cv_val_auc > 0.6:
                 max_val_AUC = mean_cv_val_auc
@@ -158,7 +161,7 @@ if __name__ == '__main__':
         pred = [train_predict, test_predict]
         auc, ci_lower_list, ci_upper_list = draw_roc_list(pred, label, name, is_show=False)
 
-        output_dict['repeat_split'].append(i*10)
+        output_dict['repeat_split'].append(random_seed*10)
         output_dict['feature num'].append(k)
         output_dict['train AUC'].append(auc[0])
         output_dict['cv val AUC'].append(mean_cv_val_auc)

@@ -51,3 +51,15 @@ def split_feature_type(total_dataframe, store_folder=''):
 
     return shape_dataframe, firstorder_dataframe, texture_dataframe
 
+
+def split_image_type(total_df, image_types=['original', 'log-sigma', 'wave'], store_folder='', split="train"):
+    label_df = total_df.iloc[:, :1]
+    all_image_df = []
+    for image in image_types:
+        image_df = total_df.filter(regex=f'{image}')
+        image_df = label_df.join(image_df)
+        if store_folder != '':
+            os.makedirs(store_folder+f'/{image}', exist_ok=True)
+            image_df.to_csv(os.path.join(store_folder, image, f'/{split}_features.csv'))
+        all_image_df.append(image_df)
+    return all_image_df

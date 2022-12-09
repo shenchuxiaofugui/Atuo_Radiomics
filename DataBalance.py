@@ -15,7 +15,7 @@ class UpSampling(object):
         label = np.array(dataframe['label'].tolist())
         feature_name = dataframe.columns.tolist()
 
-        data_resampled, label_resampled = self._model.fit_sample(data, label)
+        data_resampled, label_resampled = self._model.fit_resample(data, label)
 
         new_case_name = ['Balance' + str(index) for index in range(data_resampled.shape[0])]
         new_data = np.concatenate((label_resampled[..., np.newaxis], data_resampled), axis=1)
