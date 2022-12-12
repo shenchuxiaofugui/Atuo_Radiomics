@@ -79,6 +79,9 @@ class SVM(Classifier):
             content = 'SVM with specific kernel does not give intercept: '
             print('{} \n{}'.format(content, e.__str__()))
 
+    def get_name(self):
+        return "SVM"
+
 
 class LR(Classifier):
     def __init__(self, dataframe, **kwargs):
@@ -88,6 +91,7 @@ class LR(Classifier):
         else:
             super(LR, self).set_model(LogisticRegression(penalty='none', solver='saga', tol=0.01,
                                                          random_state=0, **kwargs))
+        self.name = "LR"
         self._x = np.array(dataframe.values[:, 1:])
         self._y = np.array(dataframe['label'].tolist())
         self.dataframe = dataframe
@@ -122,6 +126,9 @@ class LR(Classifier):
         except Exception as e:
             content = 'LR can not load intercept: '
             print('{} \n{}'.format(content, e.__str__()))
+
+    def get_name(self):
+        return "LR"
 
 
 class LRLasso(Classifier):

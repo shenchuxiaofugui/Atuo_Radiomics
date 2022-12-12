@@ -48,6 +48,9 @@ class FeatureSelectByRFE(object):
 
         return new_dataframe
 
+    def get_name(self):
+        return "RFE"
+
 
 class FeatureSelectByANOVA(object):
     def __init__(self, n_features_to_select=20):
@@ -85,6 +88,9 @@ class FeatureSelectByANOVA(object):
 
 
         return new_dataframe
+
+    def get_name(self):
+        return "AMPVA"
 
 
 # class FeatureSelectByRelief(FeatureSelectByAnalysis):
