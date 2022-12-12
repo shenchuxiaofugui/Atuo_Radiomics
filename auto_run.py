@@ -15,7 +15,7 @@ from Metric import EstimatePrediction
 from DataContainer import DataContainer
 from copy import deepcopy
 from time import time
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, managers
 import json
 import split_by_p
 
@@ -66,7 +66,7 @@ class Radiomics():
 
     def save_prediction(self, data_df, model, predict_store_path, key):
         #这个用来预测和保存预测结果，返回指标的字典
-        label = data_df["label"].values
+        label = data_df["label"].values.astype(int)
         predict_columns = ['label', 'Pred']
         prediction = model.predict(data_df.values[:, 1:])
         new_data = np.concatenate((label[:, np.newaxis], prediction[:, np.newaxis]), axis=1)
@@ -107,7 +107,7 @@ class Radiomics():
         #     os.makedirs(combine_store_path, exist_ok=True)
         #     self.predict_save(self.train_data, self.test_data, self.combine_features, combine_store_path)
 
-    def run(self):
+    def run(self, q = None):
         #这个是全部的流程
         start = time()
         q = Queue()
@@ -139,6 +139,8 @@ class Radiomics():
             p.join()
         end = time()
         print(f"spend {(end - start) / 3600} hours")
+        if q != None:
+            q.put(self)
 
     def cross_validation(self, train_df, onese=True):
         # 这个用来跑子模型
@@ -233,12 +235,15 @@ class Radiomics():
     def get_selected_dataframe(self):
         return self.train_data[self.combine_features], self.test_data[self.combine_features]
 
+class MyManager(managers.BaseManager):
+    pass
 
 class Multi_modal():
     def __init__(self, single_model: Radiomics, savepath, modals, max_feature_num=10, random_seed=1):
         self.features = None
         self.max_feature_num = max_feature_num
-        self.singel_model = single_model
+        MyManager.register("model", Radiomics)
+        self.singel_model = MyManager().model()
         self.train_label = None
         self.test_label = None
         self.random_seed = random_seed
@@ -250,11 +255,12 @@ class Multi_modal():
 
     def run_single(self):
         #这个用来跑所有的模型
+        q = Queue()
         for l, modality in enumerate(self.modals):
             single_path = os.path.join(self.root, modality)
             self.singel_model.savepath = single_path
             self.single_model.load_csv(single_path+"/train_numeric_feature.csv", single_path+"/test_numeric_feature.csv")
-            self.single_model.run()
+            Process(self.single_model.run, ())
             if l == 0:
                 self.train_df, self.test_df = self.single_model.get_selected_dataframe()
             else:
