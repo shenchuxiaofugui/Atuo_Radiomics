@@ -247,13 +247,40 @@ class Radiomics():
         print("好耶跑完一个图像了")
         return select_results, max_val_AUC
 
+    def _calculate_val_metric(self, cv_val_data):
+        for i in range(1, 6):
+            single_cv_val = cv_val_data[cv_val_data["group"] == i]
+            if i == 1:
+                cv_metric = EstimatePrediction(single_cv_val["Pred"].values, single_cv_val["label"].values.astype(int),
+                                               "cv_val")
+                for key in cv_metric:
+                    if isinstance(cv_metric[key], str):
+                        cv_metric[key] = eval(cv_metric[key])
+            else:
+                single_cv_metric = EstimatePrediction(single_cv_val["Pred"].values,
+                                                      single_cv_val["label"].values.astype(int),
+                                                      "cv_val")
+                for key in cv_metric:
+                    if isinstance(single_cv_metric[key], str):
+                        if isinstance(cv_metric[key], list):
+                            cv_metric[key] = [x + y for x, y in zip(cv_metric[key], eval(single_cv_metric[key]))]
+                        else:
+                            cv_metric[key] = cv_metric[key] + eval(single_cv_metric[key])
+                    else:
+                        cv_metric[key] = cv_metric[key] + single_cv_metric[key]
+        for key in cv_metric:
+            if isinstance(cv_metric[key], list):
+                cv_metric[key] = [round(x / 5, 4) for x in cv_metric[key]]
+            else:
+                cv_metric[key] = round(cv_metric[key] / 5, 4)
+        return cv_metric
+
     def _save_info(self, selected_train_df, selected_test_df, cv_train_info, cv_val_info, model, store_path):
         model.save(store_path)
         metrics = {}
         cv_train_info.to_csv(os.path.join(store_path, "cv_train_prediction.csv"))
         cv_val_info.to_csv(os.path.join(store_path, "cv_val_prediction.csv"))
-        #for i in cv
-        cv_metric = EstimatePrediction(cv_val_info["Pred"].values, cv_val_info["label"].values.astype(int), "cv_val")
+        cv_metric = self._calculate_val_metric(cv_val_info)
         selected_train_df.to_csv(os.path.join(store_path, "selected_train_data.csv"))
         selected_test_df.to_csv(os.path.join(store_path, "selected_test_data.csv"))
         train_metric, train_pred = self.save_prediction(selected_train_df, model, store_path, "train")
