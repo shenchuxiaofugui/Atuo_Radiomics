@@ -55,6 +55,7 @@ class Radiomics():
             pcc = DimensionReductionByPCC(threshold=0.99)
             train_data = pcc.run(train_data)
             train_data.to_csv(os.path.join(self.savepath, "train_pcc_result.csv"))
+            test_data = test_data[list(train_data)]
             X = train_data.iloc[:,1:]
             mean = X.mean()
             std = X.std()
@@ -161,7 +162,7 @@ class Radiomics():
         cv = StratifiedKFold(shuffle=True, random_state=self.random_seed * 10)
         max_val_AUC = 0
         selected_features = []
-        best_classifier = None
+        best_classifier, best_cv_selector, best_cv_train_info, best_cv_val_info = None, None, None, None
         for selection in self.selectors:
             for modeling in self.classifiers:
                 for k in range(self.max_feature_num):
@@ -197,15 +198,16 @@ class Radiomics():
                         pred = [cv_train_predict, cv_val_predict]
                         auc, ci_lower_list, ci_upper_list = draw_roc_list(pred, label, name, is_show=False)
                         fold5_auc.append(auc[1])  # 这里为啥要加auc[1]
+
                     mean_cv_val_auc = np.array(fold5_auc).mean()
                     # cv_aucs.append(mean_cv_val_auc)
                     if mean_cv_val_auc > max_val_AUC and mean_cv_val_auc > 0.6:
                         max_val_AUC = mean_cv_val_auc
                         selected_features = list(selected_train_df)[1:]
                         best_classifier = modeling
-                        best_selector = selector.get_name()
-                        best_train_info = train_info
-                        best_val_info = val_info
+                        best_cv_selector = selector.get_name()
+                        best_cv_train_info = train_info
+                        best_cv_val_info = val_info
                     if save_path != '':
                         selected_test_df = test_df[list(selected_train_df)]
                         store_path = os.path.join(save_path, f"{selector.get_name()}_{k+1}", model.get_name())
@@ -216,7 +218,7 @@ class Radiomics():
                 # if onese:
                 #     feat  明天写明天写
 
-        return selected_features, max_val_AUC, best_classifier, best_selector, best_train_info, best_val_info
+        return selected_features, max_val_AUC, best_classifier, best_cv_selector, best_cv_train_info, best_cv_val_info
 
     def predict_save(self, train_df, test_df, store_path, save_median_results):
         #这个用来跑总模型和保存结果
@@ -320,15 +322,17 @@ def run_single(single_model:Radiomics):
 def combine_with_df(modals, root, selectors, classifiers):
     #这里加入临床表也可以，不过是组学特征直接拼接临床表的形式
     for l, modality in enumerate(modals):
-        train_df_path = os.path.join(root, modality, "original+log-sigma+wave", "best_model", "selected_train_data.csv")
-        test_df_path = os.path.join(root, modality, "original+log-sigma+wave", "best_model", "selected_test_data.csv")
+        # train_df_path = os.path.join(root, modality, "original+log-sigma+wave", "best_model", "selected_train_data.csv")
+        # test_df_path = os.path.join(root, modality, "original+log-sigma+wave", "best_model", "selected_test_data.csv")
+        train_df_path = os.path.join(root, modality, "best_model", "selected_train_data.csv")
+        test_df_path = os.path.join(root, modality, "best_model", "selected_test_data.csv")
         if l == 0:
             combine_train_df = pd.read_csv(train_df_path, index_col=0)
             combine_test_df = pd.read_csv(test_df_path, index_col=0)
         else:
             train_df = pd.read_csv(train_df_path, index_col=0).iloc[:, 1:]
             test_df = pd.read_csv(test_df_path, index_col=0).iloc[:, 1:]
-            combine_train_df = pd.merge(combine_train_df, train_df, left_index=True, right_index=True, validate="one_to_one") #, validate="one_to_one"
+            combine_train_df = pd.merge(combine_train_df, train_df, left_index=True, right_index=True, validate="one_to_one")
             combine_test_df = pd.merge(combine_test_df, test_df, left_index=True, right_index=True, validate="one_to_one")
             assert len(combine_train_df) == len(train_df), "wrong"
     store_path = os.path.join(root, "combine_radiomics")
